@@ -1,0 +1,54 @@
+*Drought analysis using RandomForest Machine learning aligorithm
+==============
+Randomforest
+===========
+1, date_rng <- seq.Date(from = as.Date("1992-03-01"), to = as.Date("2022-12-01"), by = "month")
+2, date_df <- data.frame(Date = date_rng)
+3, Data<-read.csv('C:\\Users\\Alyo\\Desktop\\New folder\\SPEI3.csv')
+4, Data$Date <- as.Date(Data$Date)
+5, merged_data <- left_join(date_df, Data, by = "Date")
+6, merged_data <- merged_data %>% mutate(lag1 = lag(SPEI3, 1), lag2 = lag(SPEI3, 2)) %>% na.omit()
+7, train_size <- floor(0.8 * nrow(merged_data))
+8, train <- merged_data[1:train_size, ]
+9, test <- merged_data[(train_size + 1):nrow(merged_data), ]
+10, model <- randomForest(SPEI3 ~ lag1 + lag2, data = train, ntree = 100)
+11, test$predicted_value <- predict(model, test)
+12, mae <- mean(abs(test$predicted_value))
+13, mse <- mean((test$predicted_value)^2)
+14, rmse <- sqrt(mse)
+15, ggplot() +
+  geom_line(data = test, aes(x = Date, y = SPEI3), color = 'blue', size = 1) +
+  geom_line(data = test, aes(x = Date, y = predicted_value), color = 'red', linetype = 'dashed', size = 1) +
+  labs(title = "Original vs Predicted Values",
+       x = "Date",
+       y = "Value") +
+  theme_minimal()
+==============
+Ramdomforest-future
+=============
+1, date_rng <- seq.Date(from = as.Date("1992-03-01"), to = as.Date("2022-12-01"), by = "month")
+2, date_df <- data.frame(Date = date_rng)
+3, Data<-read.csv('C:\\Users\\Alyo\\Desktop\\New folder\\SPEI3.csv')
+4, Data$Date <- as.Date(Data$Date)
+5, merged_data <- left_join(date_df, Data, by = "Date")
+6, merged_data <- merged_data %>% mutate(lag1 = lag(SPEI3, 1), lag2 = lag(SPEI3, 2)) %>% na.omit()
+7, train_size <- floor(0.8 * nrow(merged_data))
+8, train <- merged_data[1:train_size, ]
+9, test <- merged_data[(train_size + 1):nrow(merged_data), ]
+10, model <- randomForest(SPEI3 ~ lag1 + lag2, data = train, ntree = 100)
+11, test$predicted_value <- predict(model, test)
+12, forecast_horizon <- 120
+13, future_dates <- seq.Date(from = max(merged_data$Date) + 1, by = "month", length.out = forecast_horizon)
+14, future_data <- data.frame(Date = future_dates)
+15, recent_data <- tail(merged_data, 370)
+16, future_data <- future_data %>% mutate(lag1 = NA, lag2 = NA,predicted_value = NA, SPEI3 = NA)
+17, future_data$lag1[1] <- recent_data$SPEI3[nrow(recent_data)]
+18, future_data$lag2[1] <- recent_data$SPEI3[nrow(recent_data) - 1]
+19, for (i in 1:nrow(future_data)) { future_data$predicted_value[i] <- predict(model, future_data[i, c("lag1", "lag2")])
+if (i < nrow(future_data)) { future_data$lag1[i + 1] <- future_data$predicted_value[i]
+future_data$lag2[i + 1] <- ifelse(i == 1, future_data$lag1[i], future_data$predicted_value[i - 1])}}
+20, combined_data <- rbind(test, future_data)
+21, ggplot() +
+  geom_line(data = test, aes(x = Date, y = SPEI3), color = 'black', size = 1) +
+  geom_line(data = future_data, aes(x = Date, y = predicted_value), color = 'red', size = 1) +
+  labs(title = "Original vs Predicted Values", x = "Date", y = "SPEI3") + theme_minimal()
